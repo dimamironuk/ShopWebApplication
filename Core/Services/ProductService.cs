@@ -4,6 +4,7 @@ using Core.Dtos.ProductDtos;
 using Core.Interfaces;
 using Data.Data;
 using Data.Entities;
+using Data.Repositories;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -15,39 +16,38 @@ namespace Core.Services
 {
     public class ProductService : IProductService
     {
-        private readonly ShopDbContext context;
+        private readonly IRepository<Product> productRep;
         private readonly IMapper mapper;
-        public ProductService(ShopDbContext context, IMapper mapper)
+        public ProductService(IRepository<Product> productRep, IMapper mapper)
         {
-            this.context = context;
+            this.productRep = productRep;
             this.mapper = mapper;
         }
 
         public async Task Create(CreateProductDto model)
         {
-            context.Products.Add(mapper.Map<Product>(model));
-            await context.SaveChangesAsync();
+            await productRep.Insert(mapper.Map<Product>(model));
+            await productRep.Save();
         }
 
         public async Task Delete(int id)
         {
-            var product = await context.Products.FindAsync(id);
+            var product = await productRep.GetById(id);
             if (product == null) return;
 
-            context.Products.Remove(product);
-
-            await context.SaveChangesAsync();
+            await productRep.Delete(id);
+            await productRep.Save();
         }
 
         public async Task Edit(EditProductDto model)
         {
-            context.Products.Update(mapper.Map<Product>(model));
-            await context.SaveChangesAsync();
+            await productRep.Update(mapper.Map<Product>(model));
+            await productRep.Save();
         }
 
         public async Task<ProductDto?> Get(int id)
         {
-            var product = await context.Products.FindAsync(id);
+            var product = await productRep.GetById(id);
             if (product == null) return null;
 
             return mapper.Map<ProductDto>(product);
@@ -55,7 +55,7 @@ namespace Core.Services
 
         public async Task<IEnumerable<ProductDto>> GetAll()
         {
-            return mapper.Map<List<ProductDto>>(await context.Products.ToListAsync());
+            return mapper.Map<List<ProductDto>>(await productRep.GetAll());
         }
     }
 }

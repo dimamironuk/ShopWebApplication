@@ -1,6 +1,7 @@
 using Core.Interfaces;
 using Core.Services;
 using Data.Data;
+using Data.Repositories;
 using Microsoft.EntityFrameworkCore;
 using YouTube.MapperProfiles;
 
@@ -22,6 +23,7 @@ builder.Services.AddAutoMapper(typeof(AppProfile));
 
 builder.Services.AddScoped<ICategoreService, CategoryService>();
 builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
 
 var app = builder.Build();

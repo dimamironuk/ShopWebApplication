@@ -4,6 +4,7 @@ using Core.Dtos.ProductDtos;
 using Core.Interfaces;
 using Data.Data;
 using Data.Entities;
+using Data.Repositories;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -15,42 +16,49 @@ namespace Core.Services
 {
     public class CategoryService : ICategoreService
     {
-        private readonly ShopDbContext context;
+        private readonly IRepository<Category> categoryRep;
+        private readonly IRepository<Product> productRep;
         private readonly IMapper mapper;
-        public CategoryService(ShopDbContext context, IMapper mapper)
+        public CategoryService(IRepository<Category> categoryRep, IMapper mapper, IRepository<Product> productRep)
         {
-            this.context = context;
+            this.categoryRep = categoryRep;
+            this.productRep = productRep;
             this.mapper = mapper;
         }
 
         public async Task Create(CreateCategoryDto model)
         {
-            context.Categories.Add(mapper.Map<Category>(model));
-            await context.SaveChangesAsync();
+            await categoryRep.Insert(mapper.Map<Category>(model));
+            await categoryRep.Save();
         }
 
         public async Task Delete(int id)
         {
-            var category = await context.Categories.FindAsync(id);
+            var category = await categoryRep.GetById(id);
             if (category == null) return;
 
-            var products = await context.Products.Where(p => p.CategoryId == id).ToListAsync();
-            context.Products.RemoveRange(products);
+            var products = await productRep.GetAll();
+            var productsToDelete = products.Where(p => p.CategoryId == id).ToList();
 
-            context.Categories.Remove(category);
+            foreach (var product in productsToDelete)
+            {
+                await productRep.Delete(product);
+            }
 
-            await context.SaveChangesAsync();
+            await categoryRep.Delete(category);
+            await categoryRep.Save();
         }
+
 
         public async Task Edit(EditCategorytDto model)
         {
-            context.Categories.Update(mapper.Map<Category>(model));
-            await context.SaveChangesAsync();
+            categoryRep.Update(mapper.Map<Category>(model));
+            await categoryRep.Save();
         }
 
         public async Task<CategoryDto?> Get(int id)
         {
-            var category = await context.Categories.FindAsync(id);
+            var category = await categoryRep.GetById(id);
             if (category == null) return null;
 
             return mapper.Map<CategoryDto>(category);
@@ -58,7 +66,7 @@ namespace Core.Services
 
         public async Task<IEnumerable<CategoryDto>> GetAll()
         {
-            return mapper.Map<List<CategoryDto>>(await context.Categories.ToListAsync());
+            return mapper.Map<List<CategoryDto>>(await categoryRep.GetAll());
         }
     }
 }
